@@ -29,8 +29,16 @@
       "version": "1.0.0",
       "author": "Agnes",
       "configSchema": {
-        "apiKey": { "type": "string", "label": "API Key", "default": "" },
-        "defaultCity": { "type": "string", "label": "默认城市", "default": "北京" }
+        "apiKey": {
+          "type": "string",
+          "label": "API Key",
+          "default": ""
+        },
+        "defaultCity": {
+          "type": "string",
+          "label": "默认城市",
+          "default": "北京"
+        }
       }
     },
     {
@@ -42,7 +50,11 @@
       "version": "1.0.0",
       "author": "Agnes",
       "configSchema": {
-        "timeoutMs": { "type": "number", "label": "超时时间(毫秒)", "default": 5000 }
+        "timeoutMs": {
+          "type": "number",
+          "label": "超时时间(毫秒)",
+          "default": 5000
+        }
       }
     },
     {
@@ -58,10 +70,27 @@
           "type": "string",
           "label": "搜索引擎",
           "default": "bing",
-          "options": ["bing", "google", "duckduckgo"]
+          "options": [
+            "bing",
+            "google",
+            "duckduckgo"
+          ]
         },
-        "maxResults": { "type": "number", "label": "最大结果数", "default": 10 }
+        "maxResults": {
+          "type": "number",
+          "label": "最大结果数",
+          "default": 10
+        }
       }
+    },
+    {
+      "category": "dev",
+      "version": "0.0.1",
+      "pluginKey": "repo-live-test",
+      "author": "Agnes",
+      "name": "仓库测试插件",
+      "description": "验证插件目录来自 GitHub 仓库",
+      "icon": "TestTube"
     }
   ]
 }
