@@ -72,6 +72,8 @@ async function getCatalog(): Promise<BuiltinPluginMeta[]> {
   }
   return BUILTIN_PLUGINS;
 }
+
+const BUILTIN_PLUGINS: BuiltinPluginMeta[] = [
   {
     pluginKey: 'calculator',
     name: '计算器',
