@@ -1,0 +1,293 @@
+{
+  "tasks": [
+    {
+      "id": 1,
+      "type": "app_init",
+      "name": "应用初始化任务",
+      "status": "completed",
+      "subtasks": [
+        "初始化布局导航文件Layout",
+        "初始化主题文件",
+        "初始化占位页面和路由",
+        "本任务以编译与日志检查为界，日志确认无错即提交；运行时核验统一由验收测试任务承担"
+      ],
+      "beginTime": 1785765190455,
+      "endTime": 1785765321420
+    },
+    {
+      "id": 2,
+      "name": "代码架构设计与全局骨架搭建",
+      "type": "normal",
+      "status": "completed",
+      "subtasks": [
+        "读取 coding-guide skill 了解项目编码规范",
+        "创建前端目录结构：pages/stores/themes/plugins/hooks/components",
+        "创建后端模块目录：conversation/chat/model-config/plugin/preference/profile",
+        "配置前端路由：对话首页/设置页/插件市场/个人中心",
+        "创建 shared 类型定义文件：对话/消息/模型配置/插件/用户偏好",
+        "创建全局 Layout 组件与主题 Provider",
+        "创建 Zustand store 基础文件与 React Query 配置"
+      ],
+      "read_scope": [
+        "client/src/app.tsx",
+        "server/app.module.ts",
+        "shared/api.interface.ts",
+        "tailwind.config.ts"
+      ],
+      "acceptance": "前端路由可访问所有页面占位、后端模块文件骨架齐全可编译、shared 类型定义导出正常",
+      "dependencies": [],
+      "beginTime": 1785765321562,
+      "endTime": 1785765607559
+    },
+    {
+      "id": 3,
+      "name": "数据库表设计与创建",
+      "type": "normal",
+      "status": "completed",
+      "subtasks": [
+        "读取 coding-guide skill 数据库操作章节",
+        "创建 conversation 对话表",
+        "创建 message 消息表",
+        "创建 model_config 模型配置表",
+        "创建 plugin 插件表",
+        "创建 user_preference 用户偏好表",
+        "同步数据库 schema 并验证建表成功"
+      ],
+      "read_scope": [
+        "server/database/schema.ts"
+      ],
+      "acceptance": "5张表全部创建成功，字段与类型符合设计，schema.ts 同步更新",
+      "dependencies": [
+        2
+      ],
+      "beginTime": 1785765607691,
+      "endTime": 1785766590268
+    },
+    {
+      "id": 4,
+      "name": "主题系统与全局样式",
+      "type": "normal",
+      "status": "completed",
+      "subtasks": [
+        "读取 coding-guide skill 前端样式规范",
+        "设计5套主题的 CSS 变量定义（液态玻璃/毛孔玻璃/暗黑/极光/极简白）",
+        "实现 ThemeProvider 与 useTheme hook",
+        "实现主题切换过渡动画（framer-motion）",
+        "配置 Tailwind CSS 主题变量映射",
+        "创建主题预览卡片组件",
+        "验证5种主题切换效果"
+      ],
+      "read_scope": [
+        "tailwind.config.ts",
+        "client/src/typography.css"
+      ],
+      "acceptance": "5种主题可通过 data-theme 切换，CSS 变量生效，过渡动画流畅，主题预览卡片可展示",
+      "dependencies": [
+        2
+      ],
+      "beginTime": 1785765607691,
+      "endTime": 1785766590268
+    },
+    {
+      "id": 5,
+      "name": "对话模块开发（含前后端）",
+      "type": "normal",
+      "status": "completed",
+      "subtasks": [
+        "读取 coding-guide skill 前后端联调规范",
+        "后端：实现对话 CRUD Service + Controller",
+        "后端：实现消息 CRUD Service",
+        "后端：实现聊天发送接口（代理转发到用户配置的模型API，支持SSE流式）",
+        "后端：实现工具调用执行接口",
+        "前端：对话首页布局（顶部导航/消息列表/底部输入区）",
+        "前端：消息气泡组件（用户/AI/工具三种角色）",
+        "前端：Markdown 渲染与代码高亮（shiki）+ 复制按钮",
+        "前端：流式消息逐字渲染效果",
+        "前端：工具调用状态卡片组件（展开/收起）",
+        "前端：对话发送逻辑与状态管理",
+        "前端：正在输入动画指示器与失败重试",
+        "联调：对话创建、消息发送、流式回复、工具调用全流程"
+      ],
+      "read_scope": [
+        "shared/api.interface.ts",
+        "client/src/lib/shiki.ts"
+      ],
+      "acceptance": "可创建对话、发送消息、接收流式AI回复、Markdown与代码高亮正常、工具调用卡片可展开收起",
+      "dependencies": [
+        3,
+        4
+      ],
+      "beginTime": 1785766590403,
+      "endTime": 1785766882324
+    },
+    {
+      "id": 6,
+      "name": "侧边抽屉与对话历史模块",
+      "type": "normal",
+      "status": "completed",
+      "subtasks": [
+        "读取 coding-guide skill 前端组件规范",
+        "前端：侧边抽屉组件（移动端抽屉/桌面端常驻边栏）",
+        "前端：用户信息卡片（头像+昵称）",
+        "前端：新建对话按钮",
+        "前端：对话历史列表（时间倒序、标题预览、最后消息）",
+        "前端：对话删除操作（左滑/悬停显示删除）",
+        "前端：底部导航入口（设置/插件/个人中心）",
+        "前端：响应式适配（移动端抽屉/桌面端常驻）",
+        "联调：对话列表加载、切换对话、删除对话"
+      ],
+      "read_scope": [
+        "shared/api.interface.ts"
+      ],
+      "acceptance": "侧边抽屉可开合，对话历史列表正常展示，切换/删除/新建对话功能完整",
+      "dependencies": [
+        5
+      ],
+      "beginTime": 1785766882465,
+      "endTime": 1785767248866
+    },
+    {
+      "id": 7,
+      "name": "模型配置模块开发（含前后端）",
+      "type": "normal",
+      "status": "completed",
+      "subtasks": [
+        "读取 coding-guide skill 前后端联调规范",
+        "后端：模型配置 CRUD Service + Controller",
+        "后端：API Key 加密存储",
+        "后端：模型连通性测试接口",
+        "前端：设置页模型配置列表",
+        "前端：模型配置新增/编辑表单弹窗",
+        "前端：对话页顶部模型快速切换下拉",
+        "前端：本地模型与远程模型配置区分",
+        "联调：增删改查模型配置、测试连通性、对话切换模型"
+      ],
+      "read_scope": [
+        "shared/api.interface.ts"
+      ],
+      "acceptance": "可添加/编辑/删除模型配置，API Key加密存储，连通性测试可用，对话中可切换模型",
+      "dependencies": [
+        3,
+        5
+      ],
+      "beginTime": 1785766882465,
+      "endTime": 1785767248866
+    },
+    {
+      "id": 8,
+      "name": "插件系统与插件市场开发（含前后端）",
+      "type": "normal",
+      "status": "completed",
+      "subtasks": [
+        "读取 coding-guide skill 前后端联调规范",
+        "后端：插件安装/卸载/启用/禁用 Service + Controller",
+        "后端：插件配置保存与读取接口",
+        "后端：插件市场列表接口（合并内置注册表与安装状态）",
+        "前端：插件注册表定义与5个预置插件元数据",
+        "前端：插件市场页（分类标签/搜索/卡片网格）",
+        "前端：插件详情弹窗（功能说明/版本/配置/安装按钮）",
+        "前端：插件安装动画与状态反馈",
+        "前端：设置页插件管理列表与开关",
+        "前端：实现计算器插件执行器",
+        "前端：实现翻译插件执行器",
+        "前端：实现天气查询插件执行器",
+        "前端：实现代码执行插件执行器",
+        "前端：实现网页搜索插件执行器",
+        "联调：安装/卸载/启用/禁用插件，配置保存，插件在对话中可被调用"
+      ],
+      "read_scope": [
+        "shared/api.interface.ts"
+      ],
+      "acceptance": "插件市场可浏览5个预置插件，可安装/卸载/启用/禁用，配置可保存，对话中工具调用可执行对应插件",
+      "dependencies": [
+        3,
+        5
+      ],
+      "beginTime": 1785766882465,
+      "endTime": 1785767248866
+    },
+    {
+      "id": 9,
+      "name": "设置页开发",
+      "type": "normal",
+      "status": "completed",
+      "subtasks": [
+        "读取 coding-guide skill 前端组件规范",
+        "前端：设置页整体布局（分组列表/左右分栏响应式）",
+        "前端：外观设置分组（主题切换预览卡片/字体大小/气泡样式）",
+        "前端：模型配置分组（列表入口/新增按钮）",
+        "前端：插件管理分组（已安装插件列表/开关）",
+        "前端：数据管理分组（导出/导入/清除数据）",
+        "前端：关于分组（应用名/版本/开发者）",
+        "前端：设置项展开收起交互",
+        "联调：主题偏好保存、外观设置持久化"
+      ],
+      "read_scope": [
+        "shared/api.interface.ts"
+      ],
+      "acceptance": "设置页5个分组完整，主题切换即时生效，所有设置项修改后自动保存",
+      "dependencies": [
+        4,
+        7,
+        8
+      ],
+      "beginTime": 1785767248999,
+      "endTime": 1785767621146
+    },
+    {
+      "id": 10,
+      "name": "个人中心与数据导入导出开发（含前后端）",
+      "type": "normal",
+      "status": "completed",
+      "subtasks": [
+        "读取 client-builtins-file-storage-service skill",
+        "读取 coding-guide skill 前后端联调规范",
+        "后端：用户偏好 CRUD Service + Controller",
+        "后端：数据导出接口（导出全部用户数据为JSON）",
+        "后端：数据导入接口（导入JSON数据，支持合并/覆盖）",
+        "后端：数据清除接口",
+        "后端：使用统计聚合接口",
+        "前端：个人中心页布局",
+        "前端：用户资料卡片（头像/昵称/统计）",
+        "前端：昵称编辑与头像上传（使用平台文件存储）",
+        "前端：数据导出功能（生成JSON文件下载）",
+        "前端：数据导入功能（文件选择/预览确认）",
+        "前端：清除数据二次确认",
+        "联调：资料编辑保存、导入导出全流程、统计数据展示"
+      ],
+      "read_scope": [
+        "shared/api.interface.ts"
+      ],
+      "acceptance": "个人资料可编辑保存，头像可上传，数据导出为JSON文件，导入后数据恢复，统计数据正确展示",
+      "dependencies": [
+        3,
+        9
+      ],
+      "endTime": 1785767621146
+    },
+    {
+      "id": 11,
+      "name": "验收测试",
+      "type": "normal",
+      "status": "completed",
+      "subtasks": [
+        "读取 testing-guide skill",
+        "架构与入口检查：检查路由/布局/主题系统架构是否符合设计",
+        "核心验收目标1：对话首页 —— 发送消息后AI回复流式展示，Markdown与代码高亮正常，工具调用卡片可展开",
+        "核心验收目标2：设置页 —— 5种主题切换即时生效且过渡流畅，模型配置可增删改查并测试连通性",
+        "核心验收目标3：插件市场 + 数据导入导出 —— 插件可安装启用并在对话中调用，数据导出后可重新导入恢复",
+        "非核心降级范围：AI回复内容质量、真实外部API可用性、复杂动画细节、移动端极端分辨率适配"
+      ],
+      "read_scope": [],
+      "acceptance": "三个核心验收目标全部通过，应用可正常使用核心功能",
+      "dependencies": [
+        6,
+        8,
+        9,
+        10
+      ],
+      "beginTime": 1785767621264,
+      "endTime": 1785768460245
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "updatedAt": "2026-08-08",
+  "plugins": [
+    {
+      "pluginKey": "calculator",
+      "name": "计算器",
+      "description": "支持复杂数学表达式的安全计算，包含加减乘除与括号运算",
+      "category": "tool",
+      "icon": "Calculator",
+      "version": "1.0.0",
+      "author": "Agnes"
+    },
+    {
+      "pluginKey": "translator",
+      "name": "翻译助手",
+      "description": "多语言文本互译，支持中英文及常见语种的快速翻译",
+      "category": "tool",
+      "icon": "Languages",
+      "version": "1.0.0",
+      "author": "Agnes"
+    },
+    {
+      "pluginKey": "weather",
+      "name": "天气查询",
+      "description": "查询指定城市的实时天气、温度、湿度与风力信息",
+      "category": "life",
+      "icon": "CloudSun",
+      "version": "1.0.0",
+      "author": "Agnes",
+      "configSchema": {
+        "apiKey": { "type": "string", "label": "API Key", "default": "" },
+        "defaultCity": { "type": "string", "label": "默认城市", "default": "北京" }
+      }
+    },
+    {
+      "pluginKey": "code-executor",
+      "name": "代码执行器",
+      "description": "在受限沙箱环境中运行 JavaScript 代码，支持输出捕获",
+      "category": "dev",
+      "icon": "Terminal",
+      "version": "1.0.0",
+      "author": "Agnes",
+      "configSchema": {
+        "timeoutMs": { "type": "number", "label": "超时时间(毫秒)", "default": 5000 }
+      }
+    },
+    {
+      "pluginKey": "web-search",
+      "name": "网页搜索",
+      "description": "搜索互联网获取最新信息，返回标题、摘要与链接",
+      "category": "search",
+      "icon": "Search",
+      "version": "1.0.0",
+      "author": "Agnes",
+      "configSchema": {
+        "searchEngine": {
+          "type": "string",
+          "label": "搜索引擎",
+          "default": "bing",
+          "options": ["bing", "google", "duckduckgo"]
+        },
+        "maxResults": { "type": "number", "label": "最大结果数", "default": 10 }
+      }
+    }
+  ]
+}
