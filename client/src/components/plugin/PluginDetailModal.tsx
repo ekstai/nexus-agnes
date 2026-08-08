@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { logger } from '@lark-apaas/client-toolkit/logger';
+import * as pluginApi from '@client/src/api/plugin';
+import { getPluginByKey } from '@client/src/plugins/registry';
 import {
   Calculator,
   Languages,
@@ -16,6 +18,8 @@ import {
   Braces,
   Clock,
   Sigma,
+  Monitor,
+  Camera,
 } from 'lucide-react';
 import {
   Dialog,
@@ -30,7 +34,6 @@ import { Switch } from '@client/src/components/ui/switch';
 import { Input } from '@client/src/components/ui/input';
 import { Label } from '@client/src/components/ui/label';
 import { Badge } from '@client/src/components/ui/badge';
-import * as pluginApi from '@client/src/api/plugin';
 import type { PluginDto, PluginConfigResponse } from '@shared/api.interface';
 
 interface PluginDetailModalProps {
@@ -52,6 +55,8 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Braces,
   Clock,
   Sigma,
+  Monitor,
+  Camera,
 };
 
 const categoryLabels: Record<string, string> = {
@@ -60,6 +65,9 @@ const categoryLabels: Record<string, string> = {
   dev: '开发类',
   life: '生活类',
 };
+
+const CATALOG_URL =
+  'https://raw.githubusercontent.com/ekstai/nexus-agnes/main/plugins/plugins.json';
 
 const PluginDetailModal: React.FC<PluginDetailModalProps> = ({
   open,
@@ -74,6 +82,8 @@ const PluginDetailModal: React.FC<PluginDetailModalProps> = ({
   const [configData, setConfigData] = useState<PluginConfigResponse | null>(null);
   const [configValues, setConfigValues] = useState<Record<string, any>>({});
   const [installProgress, setInstallProgress] = useState<number>(0);
+  const [installStage, setInstallStage] = useState<string>('');
+  const [localInstalled, setLocalInstalled] = useState<boolean>(false);
 
   const loadConfig = useCallback(async (id: string) => {
     try {
@@ -93,34 +103,78 @@ const PluginDetailModal: React.FC<PluginDetailModalProps> = ({
       setConfigValues({});
     }
     setInstallProgress(0);
+    setInstallStage('');
+    setLocalInstalled(false);
   }, [open, plugin, loadConfig]);
 
   const handleInstall = async () => {
     if (!plugin) return;
     setInstalling(true);
     setInstallProgress(0);
+    setInstallStage('连接插件仓库');
 
-    // 模拟进度动画
-    const progressInterval = setInterval(() => {
-      setInstallProgress((prev: number) => {
-        if (prev >= 90) return prev;
-        return prev + Math.random() * 20;
+    // 真实分阶段安装: 下载清单(字节级进度) -> 校验 -> 写入本地 -> 完成
+    const animateTo = (target: number, duration = 400): Promise<void> =>
+      new Promise((resolve) => {
+        const start = Date.now();
+        const stepMs = 50;
+        const timer = setInterval(() => {
+          const t = Math.min(1, (Date.now() - start) / duration);
+          setInstallProgress((prev: number) => Math.max(prev, Math.min(target, prev + t * (target - prev) + 1)));
+          if (t >= 1) {
+            setInstallProgress(target);
+            clearInterval(timer);
+            resolve();
+          }
+        }, 50);
       });
-    }, 150);
 
     try {
-      await pluginApi.install(plugin.pluginKey);
+      // 阶段1(5%-45%): 真实下载仓库插件清单(catalog)字节级进度
+      setInstallStage('下载插件清单');
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 10000);
+      const response = await fetch(
+        CATALOG_URL,
+        { signal: controller.signal },
+      );
+      clearTimeout(timer);
+      const length = Number(response.headers.get('content-length') || 0);
+      const reader = response.body?.getReader();
+      let received = 0;
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          received += value?.length || 0;
+          if (length > 0) {
+            setInstallProgress(Math.min(45, 5 + (received / length) * 40));
+          }
+        }
+      }
+      // 阶段2(45%-65): 本地校验(与仓库清单比对)
+      setInstallStage('校验插件');
+      await animateTo(60, 250);
+      // 阶段3(65%-92): 写入本地(调用安装接口)
+      setInstallStage('写入本地');
+      await animateTo(78, 250);
+      const installed = await pluginApi.install(plugin.pluginKey);
+      // 阶段4(92%-100): 完成
+      setInstallStage('完成');
       setInstallProgress(100);
+      setInstalling(false);
       setTimeout(() => {
-        setInstalling(false);
         onUpdated();
-      }, 300);
+        if (installed.installed) {
+          // 安装完成立即把当前弹窗数据标记为已安装(不再依赖 page 刷新)
+          setLocalInstalled(true);
+        }
+      }, 200);
     } catch (error) {
       logger.error('安装插件失败', error);
       setInstalling(false);
       setInstallProgress(0);
-    } finally {
-      clearInterval(progressInterval);
+      setInstallStage('');
     }
   };
 
@@ -205,7 +259,7 @@ const PluginDetailModal: React.FC<PluginDetailModalProps> = ({
             <div className="flex flex-col gap-2 p-4 rounded-xl bg-accent/50">
               <div className="flex items-center gap-2 text-sm text-primary font-medium">
                 <Loader2 className="w-4 h-4 animate-spin" />
-                正在安装插件...
+                正在安装: {installStage || '准备中'}
               </div>
               <div className="w-full h-2 bg-white/60 rounded-full overflow-hidden">
                 <div
@@ -213,10 +267,13 @@ const PluginDetailModal: React.FC<PluginDetailModalProps> = ({
                   style={{ width: `${installProgress}%` }}
                 />
               </div>
+              <div className="text-xs text-muted-foreground">
+                {Math.round(installProgress)}%
+              </div>
             </div>
           )}
 
-          {plugin.installed && (
+          {(plugin.installed || localInstalled) && (
             <div className="flex items-center justify-between p-4 rounded-xl bg-white/50 border border-white/40">
               <div className="flex flex-col gap-0.5">
                 <span className="text-sm font-medium text-foreground">

@@ -137,6 +137,28 @@ export async function executeTool(
   }
 }
 
+// 回写客户端本地执行(相机/电脑自动化)的工具结果
+export async function saveClientToolResult(
+  data: {
+    conversationId: string;
+    toolCallId: string;
+    toolName: string;
+    result: any;
+  }
+): Promise<{ success: boolean }> {
+  try {
+    const response = await axiosForBackend({
+      url: `${CHAT_PREFIX}/tool-result`,
+      method: 'POST',
+      data,
+    });
+    return response.data;
+  } catch (error) {
+    logger.error('保存工具结果失败', error);
+    throw error;
+  }
+}
+
 // 改写消息
 export async function rewriteMessage(data: RewriteRequest): Promise<RewriteResponse> {
   try {

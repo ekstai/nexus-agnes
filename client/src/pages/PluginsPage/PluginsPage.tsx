@@ -29,13 +29,15 @@ const PluginsPage: React.FC = () => {
   const [detailOpen, setDetailOpen] = useState<boolean>(false);
   const [showSearch, setShowSearch] = useState<boolean>(false);
 
-  const loadPlugins = async () => {
+  const loadPlugins = async (): Promise<PluginDto[]> => {
     setLoading(true);
     try {
       const data = await pluginApi.getMarket();
       setPlugins(data.items);
+      return data.items;
     } catch (error) {
       logger.error('加载插件市场失败', error);
+      return [];
     } finally {
       setLoading(false);
     }
@@ -44,6 +46,17 @@ const PluginsPage: React.FC = () => {
   useEffect(() => {
     loadPlugins();
   }, []);
+
+  const handleUpdated = async (): Promise<void> => {
+    const items = await loadPlugins();
+    // 同步详情弹窗中当前插件的实时状态(修复安装完成后仍显示"安装"的问题)
+    if (selectedPlugin) {
+      const fresh = items.find((p: PluginDto) => p.pluginKey === selectedPlugin.pluginKey);
+      if (fresh) {
+        setSelectedPlugin(fresh);
+      }
+    }
+  };
 
   const filteredPlugins = useMemo(() => {
     return plugins.filter((p: PluginDto) => {
@@ -61,11 +74,7 @@ const PluginsPage: React.FC = () => {
     setDetailOpen(true);
   };
 
-  const handleUpdated = () => {
-    loadPlugins();
-  };
-
-  const handleBack = () => {
+  const handleBack = (): void => {
     navigate(-1);
   };
 

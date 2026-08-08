@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "updatedAt": "2026-08-08",
   "plugins": [
     {
@@ -122,6 +122,28 @@
         },
         "maxResults": { "type": "number", "label": "最大结果数", "default": 10 }
       }
+    },
+    {
+      "pluginKey": "system-file-tools",
+      "name": "电脑自动化",
+      "description": "内置系统工具：读取照片/文件、创建文件、打开工作目录（桌面端本地运行，支持手机端文件选择适配）",
+      "category": "tool",
+      "icon": "Monitor",
+      "version": "1.0.0",
+      "author": "Agnes",
+      "builtin": true,
+      "platforms": ["desktop", "mobile"]
+    },
+    {
+      "pluginKey": "system-camera",
+      "name": "相机助手",
+      "description": "调用设备相机拍照，图片自动保存到工作目录（桌面端 Electron IPC，手机端调用手机相机）",
+      "category": "life",
+      "icon": "Camera",
+      "version": "1.0.0",
+      "author": "Agnes",
+      "builtin": true,
+      "platforms": ["desktop", "mobile"]
     }
   ]
 }

@@ -5,6 +5,8 @@ import type {
   ChatSendRequest,
   ChatToolRequest,
   ChatToolResponse,
+  ChatToolResultRequest,
+  ChatToolResultResponse,
   MessageDto,
   DebateRequest,
   DebateResponse,
@@ -52,6 +54,16 @@ export class ChatController {
   ): Promise<ChatToolResponse> {
     const { userId } = req.userContext;
     return this.chatService.executeTool(userId, body);
+  }
+
+  @Post('tool-result')
+  @NeedLogin()
+  async toolResult(
+    @Req() req: { userContext: { userId: string } },
+    @Body() body: ChatToolResultRequest,
+  ): Promise<ChatToolResultResponse> {
+    const { userId } = req.userContext;
+    return this.chatService.saveClientToolResult(userId, body);
   }
 
   @Post('rewrite')

@@ -12,6 +12,8 @@ import {
   Braces,
   Clock,
   Sigma,
+  Monitor,
+  Camera,
 } from 'lucide-react';
 import { Badge } from '@client/src/components/ui/badge';
 import { Card, CardContent } from '@client/src/components/ui/card';
@@ -34,6 +36,8 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Braces,
   Clock,
   Sigma,
+  Monitor,
+  Camera,
 };
 
 const categoryLabels: Record<string, string> = {

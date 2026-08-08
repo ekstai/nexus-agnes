@@ -1,4 +1,13 @@
 import type { PluginCategory } from '@shared/api.interface';
+import {
+  isDesktop,
+  getWorkspaceDir,
+  createFile,
+  readPhoto,
+  readTextFile,
+  openFolder,
+  capturePhoto,
+} from './local-tools';
 
 export interface AgnesPlugin {
   key: string;
@@ -554,6 +563,97 @@ export const PLUGIN_REGISTRY: AgnesPlugin[] = [
         options: ['bing', 'google', 'duckduckgo'],
       },
       maxResults: { type: 'number', label: '最大结果数', default: 5 },
+    },
+  },
+{
+    key: 'system-file-tools',
+    name: '电脑自动化',
+    description: '内置系统工具：读取照片/文件、创建文件、打开工作目录（桌面端本地运行，手机端自动适配文件选择）',
+    category: 'tool',
+    icon: 'Monitor',
+    version: '1.0.0',
+    author: 'Agnes',
+    functionDefinition: {
+      name: 'system_file_tools',
+      description: '电脑本地自动化：创建文件、读取文本文件、读取照片、打开工作目录',
+      parameters: {
+        type: 'object',
+        properties: {
+          action: {
+            type: 'string',
+            description: 'create-file / read-text / read-photo / open-folder',
+          },
+          fileName: { type: 'string', description: '创建文件时的文件名' },
+          content: { type: 'string', description: '创建文件时的内容' },
+          dir: { type: 'string', description: '目标目录(可选)' },
+        },
+        required: ['action'],
+      },
+    },
+    execute: async (args: Record<string, any>) => {
+      const action = String(args.action || '');
+      if (action === 'create-file') {
+        const res = await createFile({
+          fileName: String(args.fileName || ''),
+          content: String(args.content ?? ''),
+          dir: args.dir ? String(args.dir) : undefined,
+        });
+        return res.ok
+          ? { action, ok: true, workspace: isDesktop() ? await getWorkspaceDir() : '浏览器下载目录', filePath: res.filePath, downloaded: res.downloaded }
+          : { action, ok: false, error: res.error };
+      }
+      if (action === 'read-text') {
+        const res = await readTextFile();
+        return res.ok
+          ? { action, ok: true, name: res.name, text: res.content }
+          : { action, ok: false, error: res.error, canceled: true };
+      }
+      if (action === 'read-photo') {
+        const res = await readPhoto();
+        return res.ok
+          ? { action, ok: true, name: res.name, size: res.size, dataUrl: res.dataUrl }
+          : { action, ok: false, error: res.error, canceled: true };
+      }
+      if (action === 'open-folder') {
+        const res = await openFolder(args.dir ? String(args.dir) : undefined);
+        return res.ok ? { action, ok: true } : { action, ok: false, error: res.error };
+      }
+      return { action, ok: false, error: '未知操作' };
+    },
+    configSchema: {
+      dir: { type: 'string', label: '工作目录(留空使用默认)', default: '' },
+    },
+  },
+  {
+    key: 'system-camera',
+    name: '相机助手',
+    description: '调用设备相机拍照（桌面/手机原生相机适配），照片可直接用于对话',
+    category: 'life',
+    icon: 'Camera',
+    version: '1.0.0',
+    author: 'Agnes',
+    functionDefinition: {
+      name: 'system_camera',
+      description: '拍照/读取一张照片',
+      parameters: {
+        type: 'object',
+        properties: {
+          action: { type: 'string', description: 'capture(拍照) 或 read(读取现有照片)', default: 'capture' },
+        },
+      },
+    },
+    execute: async (args: Record<string, any>) => {
+      const action = String(args.action || 'capture');
+      if (action === 'read') {
+        const res = await readPhoto();
+        return res.ok
+          ? { action: 'read', ok: true, name: res.name, size: res.size, dataUrl: res.dataUrl }
+          : { action: 'read', ok: false, error: res.error };
+      }
+      const res = await capturePhoto();
+      return res.ok
+        ? { action: 'capture', ok: true, source: res.source, dataUrl: res.dataUrl }
+        : { action: 'capture', ok: false, error: res.error };
     },
   },
 ];

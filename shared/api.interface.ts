@@ -138,6 +138,8 @@ export interface PluginDto {
   installed: boolean;
   enabled?: boolean;
   installId?: string;
+  builtin?: boolean;
+  platforms?: string[];
 }
 
 export interface PluginMarketResponse {
@@ -240,6 +242,18 @@ export interface ChatToolRequest {
 
 export interface ChatToolResponse {
   result: any;
+}
+
+/** 客户端本地执行（系统类插件：相机/电脑自动化）后回写结果 */
+export interface ChatToolResultRequest {
+  conversationId: string;
+  toolCallId: string;
+  toolName: string;
+  result: any;
+}
+
+export interface ChatToolResultResponse {
+  success: boolean;
 }
 
 export interface UserStatsResponse {

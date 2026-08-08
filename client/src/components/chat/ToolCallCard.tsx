@@ -79,11 +79,7 @@ const ToolCallCard: React.FC<ToolCallCardProps> = ({
           {result !== undefined && (
             <div>
               <div className="text-xs text-muted-foreground mb-1.5">结果</div>
-              <pre className="text-xs bg-black/5 rounded-lg p-2 overflow-x-auto text-foreground/80 whitespace-pre-wrap break-all">
-                {typeof result === 'string'
-                  ? result
-                  : JSON.stringify(result, null, 2)}
-              </pre>
+              {renderResult(result)}
             </div>
           )}
         </div>
@@ -91,5 +87,41 @@ const ToolCallCard: React.FC<ToolCallCardProps> = ({
     </div>
   );
 };
+
+function renderResult(result: any): React.ReactNode {
+  const dataUrl =
+    typeof result === 'object' && result !== null ? String(result.dataUrl || '') : '';
+  const errorText =
+    typeof result === 'object' && result !== null ? String(result.error || '') : '';
+  const isError = !!errorText;
+  if (dataUrl && /^data:image\//.test(dataUrl)) {
+    return (
+      <div className="space-y-2">
+        <img
+          src={dataUrl}
+          alt="照片"
+          className="max-w-full max-h-64 rounded-lg border border-white/20 object-contain"
+        />
+        <pre className="text-xs bg-black/5 rounded-lg p-2 overflow-x-auto text-foreground/80 whitespace-pre-wrap break-all">
+          {JSON.stringify(result, null, 2)}
+        </pre>
+      </div>
+    );
+  }
+  if (isError) {
+    return (
+      <pre className="text-xs bg-red-50/60 rounded-lg p-2 overflow-x-auto text-destructive whitespace-pre-wrap break-all">
+        {errorText}
+      </pre>
+    );
+  }
+  return (
+    <pre className="text-xs bg-black/5 rounded-lg p-2 overflow-x-auto text-foreground/80 whitespace-pre-wrap break-all">
+      {typeof result === 'string'
+        ? result
+        : JSON.stringify(result, null, 2)}
+    </pre>
+  );
+}
 
 export default ToolCallCard;

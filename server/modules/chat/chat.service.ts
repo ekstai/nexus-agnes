@@ -10,6 +10,8 @@ import type {
   ChatSendRequest,
   ChatToolRequest,
   ChatToolResponse,
+  ChatToolResultRequest,
+  ChatToolResultResponse,
   MessageDto,
   ToolCall,
   DebateRequest,
@@ -389,6 +391,31 @@ const opts = this.llmService.toApiOptions(configRow);
 
   // ---- tool implementations ----
 
+  /** 客户端本地执行(相机/电脑自动化)结果回写为工具消息 */
+  async saveClientToolResult(
+    userId: string,
+    dto: ChatToolResultRequest,
+  ): Promise<ChatToolResultResponse> {
+    const conv = await this.verifyConversation(userId, dto.conversationId);
+    void conv;
+    const maxOrder = await this.db
+      .select({ max: sql<number>`COALESCE(MAX(${message.orderIndex}), -1)` })
+      .from(message)
+      .where(eq(message.conversationId, dto.conversationId));
+    const nextOrderIndex = Number(maxOrder[0]?.max ?? -1) + 1;
+    await this.db.insert(message).values({
+      conversationId: dto.conversationId,
+      role: 'tool',
+      content: JSON.stringify(dto.result ?? {}),
+      toolCallId: dto.toolCallId,
+      toolName: dto.toolName,
+      status: 'success',
+      orderIndex: nextOrderIndex,
+    });
+    await this.conversationService.touchLastMessageAt(dto.conversationId);
+    return { success: true };
+  }
+
   private async fetchJson(url: string, timeoutMs = 15000): Promise<any> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -551,6 +578,13 @@ const opts = this.llmService.toApiOptions(configRow);
         const maxResults = Math.min(Math.max(Number(args.maxResults ?? 5) || 5, 1), 10);
         if (!query) throw new Error('请输入搜索关键词');
         throw new Error('网页搜索暂不可用，稍后再试');
+      }
+      case 'system-file-tools':
+      case 'system-camera': {
+        return {
+          hint: '该工具在客户端本地执行(相机/文件操作)',
+          clientExecuted: true,
+        };
       }
       default:
         throw new BadRequestException(`Unknown tool: ${toolName}`);

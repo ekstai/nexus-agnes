@@ -1,5 +1,5 @@
 // Electron 主进程:启动内嵌后端(ELECTRON_RUN_AS_NODE)并打开应用窗口
-const { app, BrowserWindow, dialog, shell, ipcMain } = require('electron');
+const { app, BrowserWindow, dialog, shell, ipcMain, session } = require('electron');
 const { spawn, execFile } = require('child_process');
 const path = require('path');
 const http = require('http');
@@ -206,6 +206,11 @@ async function startBackend() {
 }
 
 function createWindow(url) {
+  // 允许渲染进程访问摄像头/麦克风(相机助手插件)
+  session.defaultSession.setPermissionRequestHandler((_wc, permission, callback) => {
+    callback(permission === 'media' || permission === 'mediaKeySystem');
+  });
+
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 860,
@@ -251,6 +256,76 @@ function createWindow(url) {
       return null;
     }
     return result.filePaths[0];
+  });
+
+  // ---- 系统工具(电脑自动化): 文件/文件夹/照片 ----
+  const getWorkspaceDir = (override) => {
+    const fallback = path.join(app.getPath('documents'), 'Nexus Agnes');
+    return override && typeof override === 'string' ? override : fallback;
+  };
+
+  ipcMain.handle('system:workspace-dir', () => process.env.AGNES_WORKSPACE || getWorkspaceDir());
+
+  ipcMain.handle('system:create-file', async (_event, ctx) => {
+    try {
+      const fs = require('fs');
+      const fileName = String((ctx && ctx.fileName) || 'unnamed.txt').replace(/[\\/:*?"<>|]/g, '_');
+      const content = String((ctx && ctx.content) || '');
+      const dir = getWorkspaceDir(ctx && ctx.dir);
+      fs.mkdirSync(dir, { recursive: true });
+      const filePath = path.join(dir, fileName);
+      fs.writeFileSync(filePath, content, 'utf8');
+      return { success: true, path: filePath, dir };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('system:read-text-file', async () => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      title: '选择要读取的文件',
+      properties: ['openFile'],
+    });
+    if (result.canceled || result.filePaths.length === 0) {
+      return { canceled: true };
+    }
+    try {
+      const fs = require('fs');
+      const filePath = result.filePaths[0];
+      const content = fs.readFileSync(filePath, 'utf8');
+      const size = fs.statSync(filePath).size;
+      return { success: true, path: filePath, name: path.basename(filePath), size, content: content.slice(0, 200000) };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('system:read-photo', async () => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      title: '读取照片',
+      properties: ['openFile'],
+      filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'] }],
+    });
+    if (result.canceled || result.filePaths.length === 0) {
+      return { canceled: true };
+    }
+    try {
+      const fs = require('fs');
+      const filePath = result.filePaths[0];
+      const data: Buffer = fs.readFileSync(filePath);
+      const ext = path.extname(filePath).slice(1) || 'png';
+      const mime = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp', bmp: 'image/bmp' }[ext] || 'image/png';
+      const dataUrl = `data:${mime};base64,${data.toString('base64')}`;
+      return { success: true, path: filePath, name: path.basename(filePath), size: data.length, dataUrl };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('system:open-folder', async (_event, folderPath) => {
+    const dir = folderPath || getWorkspaceDir();
+    const shellError = await shell.openPath(dir);
+    return { success: !shellError, path: dir, shellError };
   });
 
   mainWindow.webContents.setWindowOpenHandler(({ url: targetUrl }) => {

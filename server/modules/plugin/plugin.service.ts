@@ -18,6 +18,8 @@ interface BuiltinPluginMeta {
   version: string;
   author: string;
   configSchema?: Record<string, any>;
+  builtin?: boolean;
+  platforms?: string[];
 }
 
 interface RemoteCatalog {
@@ -195,6 +197,28 @@ const BUILTIN_PLUGINS: BuiltinPluginMeta[] = [
       maxResults: { type: 'number', label: '最大结果数', default: 10 },
     },
   },
+  {
+    pluginKey: 'system-file-tools',
+    name: '电脑自动化',
+    description: '内置系统工具：读取照片/文件、创建文件、打开工作目录（桌面端本地运行，支持手机端文件选择适配）',
+    category: 'tool',
+    icon: 'Monitor',
+    version: '1.0.0',
+    author: 'Agnes',
+    builtin: true,
+    platforms: ['desktop', 'mobile'],
+  },
+  {
+    pluginKey: 'system-camera',
+    name: '相机助手',
+    description: '调用设备相机拍照，图片自动保存到工作目录（桌面端 Electron IPC，手机端调用手机相机）',
+    category: 'life',
+    icon: 'Camera',
+    version: '1.0.0',
+    author: 'Agnes',
+    builtin: true,
+    platforms: ['desktop', 'mobile'],
+  },
 ];
 
 @Injectable()
@@ -218,6 +242,23 @@ export class PluginService {
     }
 
     const items: PluginDto[] = catalog.map((meta: BuiltinPluginMeta) => {
+      if (meta.builtin) {
+        return {
+          id: `builtin-${meta.pluginKey}`,
+          pluginKey: meta.pluginKey,
+          name: meta.name,
+          description: meta.description,
+          category: meta.category,
+          icon: meta.icon,
+          version: meta.version,
+          author: meta.author,
+          installed: true,
+          enabled: true,
+          installId: `builtin-${meta.pluginKey}`,
+          builtin: true,
+          platforms: meta.platforms ?? ['desktop', 'mobile'],
+        };
+      }
       const record = installedMap.get(meta.pluginKey);
       if (record && record.installed) {
         return {

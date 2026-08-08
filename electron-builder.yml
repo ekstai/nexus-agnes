@@ -1,5 +1,6 @@
 appId: com.local.agnes-chat
 productName: Nexus Agnes
+electronVersion: 43.3.0
 directories:
   app: pack
   output: release
