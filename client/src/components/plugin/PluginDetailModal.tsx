@@ -10,6 +10,12 @@ import {
   Loader2,
   Trash2,
   Settings,
+  DollarSign,
+  Binary,
+  Fingerprint,
+  Braces,
+  Clock,
+  Sigma,
 } from 'lucide-react';
 import {
   Dialog,
@@ -40,6 +46,12 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   CloudSun,
   Terminal,
   Search,
+  DollarSign,
+  Binary,
+  Fingerprint,
+  Braces,
+  Clock,
+  Sigma,
 };
 
 const categoryLabels: Record<string, string> = {

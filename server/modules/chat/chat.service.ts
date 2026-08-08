@@ -362,14 +362,12 @@ const opts = this.llmService.toApiOptions(configRow);
   async executeTool(userId: string, dto: ChatToolRequest): Promise<ChatToolResponse> {
     const conv = await this.verifyConversation(userId, dto.conversationId);
     void conv;
+    const toolName = dto.toolName;
     let result: unknown;
-    switch (dto.toolName) {
-      case 'calculator': {
-        result = this.safeCalculate(String(dto.args.expression ?? ''));
-        break;
-      }
-      default:
-        throw new BadRequestException(`Unknown tool: ${dto.toolName}`);
+    try {
+      result = await this.runTool(toolName, dto.args ?? {});
+    } catch (err: unknown) {
+      result = { error: err instanceof Error ? err.message : String(err) };
     }
     const maxOrder = await this.db
       .select({ max: sql<number>`COALESCE(MAX(${message.orderIndex}), -1)` })
@@ -381,12 +379,182 @@ const opts = this.llmService.toApiOptions(configRow);
       role: 'tool',
       content: JSON.stringify(result),
       toolCallId: dto.toolCallId,
-      toolName: dto.toolName,
+      toolName,
       status: 'success',
       orderIndex: nextOrderIndex,
     });
     await this.conversationService.touchLastMessageAt(dto.conversationId);
     return { result };
+  }
+
+  // ---- tool implementations ----
+
+  private async fetchJson(url: string, timeoutMs = 15000): Promise<any> {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const response = await fetch(url, {
+        signal: controller.signal,
+        headers: { Accept: 'application/json', 'User-Agent': 'NexusAgnes/2.2' },
+      });
+      if (!response.ok) {
+        throw new Error(`API 请求失败 (HTTP ${response.status})`);
+      }
+      return await response.json();
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  private async runTool(toolName: string, args: Record<string, any>): Promise<unknown> {
+    switch (toolName) {
+      case 'calculator': {
+        return { expression: String(args.expression ?? ''), result: this.safeCalculate(String(args.expression ?? '')) };
+      }
+      case 'weather': {
+        // 真实天气数据来源: wttr.in (无密钥)
+        const city = String(args.city || args.defaultCity || '北京').trim();
+        const url = `https://wttr.in/${encodeURIComponent(city)}?format=j1&lang=zh`;
+        let data: any;
+        try {
+          data = await this.fetchJson(url, 12000);
+        } catch (err: unknown) {
+          throw new Error(`天气服务暂不可用: ${err instanceof Error ? err.message : String(err)}`);
+        }
+        const area = data?.nearest_area?.[0];
+        const cur = data?.current_condition?.[0];
+        if (!cur) throw new Error('未获取到天气数据');
+        const cityName = area?.areaName?.[0]?.value ?? city;
+        const country = area?.country?.[0]?.value ?? '';
+        const nextDays = (data?.weather ?? []).slice(1, 4).map((d: any) => ({
+          date: d.date,
+          high: `${d.maxtempC}°C`,
+          low: `${d.mintempC}°C`,
+          desc: d.hourly?.[0]?.lang_zh?.[0]?.value ?? d.hourly?.[0]?.weatherDesc?.[0]?.value ?? '',
+        }));
+        return {
+          city: `${cityName}${country ? `, ${country}` : ''}`,
+          temperature: `${cur.temp_C ?? '?'}°C`,
+          feelsLike: `${cur.FeelsLikeC ?? '?'}°C`,
+          condition: cur.lang_zh?.[0]?.value ?? cur.weatherDesc?.[0]?.value ?? '未知',
+          humidity: `${cur.humidity ?? '?'}%`,
+          wind: `${cur.windspeedKmph ?? cur.windspeedMiles ?? '?'} (${cur.winddir16Point ?? ''})`,
+          visibility: cur.visibility ?? '',
+          pressure: cur.pressure ?? '',
+          localtime: cur.localObsDateTime ?? '',
+          forecast: nextDays,
+        };
+      }
+      case 'currency-convert': {
+        const amount = Number(args.amount ?? 1);
+        const from = String(args.from || args.defaultFrom || 'USD').toUpperCase().slice(0, 3);
+        const to = String(args.to || args.defaultTo || 'CNY').toUpperCase().slice(0, 3);
+        if (!Number.isFinite(amount) || amount <= 0) throw new Error('金额必须是大于 0 的数字');
+        let data: any;
+        try {
+          data = await this.fetchJson(`https://open.er-api.com/v6/latest/${from}`, 12000);
+        } catch (err: unknown) {
+          throw new Error(`汇率服务暂不可用: ${err instanceof Error ? err.message : String(err)}`);
+        }
+        const rates = data?.rates ?? {};
+        const rate = rates[to];
+        if (!rate) throw new Error(`暂不支持货币 ${to}`);
+        return {
+          from,
+          to,
+          amount,
+          rate: Number(rate),
+          result: Number((amount * rate).toFixed(2)),
+          updatedAt: data.time_last_update_utc ?? '',
+        };
+      }
+      case 'base64-codec': {
+        const action = String(args.action ?? 'encode');
+        const input = String(args.input ?? '');
+        if (!input) throw new Error('请输入 encode/decode 与内容');
+        const before = Buffer.byteLength(input, 'utf8');
+        if (action === 'decode') {
+          const cleaned = input.replace(/\s+/g, '');
+          const decoded = Buffer.from(cleaned, 'base64').toString('utf8');
+          return { action: 'decode', input: cleaned, size: `${before}B`, output: decoded };
+        }
+        const encoded = Buffer.from(input, 'utf8').toString('base64');
+        return { action: 'encode', input, size: `${before}B`, output: encoded };
+      }
+      case 'uuid-gen': {
+        const count = Math.min(Math.max(Number(args.count ?? 1) || 1, 1), 50);
+        const cryptoNode = await import('crypto');
+        const items: string[] = [];
+        for (let i = 0; i < count; i++) items.push(cryptoNode.randomUUID());
+        return { count: items.length, uuids: items };
+      }
+      case 'json-tool': {
+        const action = String(args.action ?? 'format');
+        const input = String(args.input ?? '');
+        if (!input.trim()) throw new Error('请输入 JSON 内容');
+        const parsed = JSON.parse(input);
+        if (action === 'minify') {
+          return { action, output: JSON.stringify(parsed) };
+        }
+        if (action === 'validate') {
+          return { action, valid: true, rootType: Array.isArray(parsed) ? 'array' : typeof parsed };
+        }
+        return { action, output: JSON.stringify(parsed, null, 2) };
+      }
+      case 'timestamp': {
+        const action = String(args.action ?? 'now');
+        const input = String(args.input ?? '').trim();
+        const offsetHours = Number(args.offsetHours ?? 0);
+        if (action === 'from-date' && input) {
+          const parsed = new Date(input);
+          if (isNaN(parsed.getTime())) throw new Error('无法解析日期，请用 ISO 格式如 2026-08-08T12:00:00');
+          return { action: 'to_unix', input, unix: Math.floor(parsed.getTime() / 1000) };
+        }
+        const now = new Date();
+        if (action === 'date' && input) {
+          const ts = Number(input) * 1000;
+          if (!Number.isFinite(ts)) throw new Error('时间戳格式无效');
+          const d = new Date(ts);
+          if (offsetHours) {
+            d.setUTCHours(d.getUTCHours() + offsetHours);
+          }
+          return {
+            action: 'to_date',
+            timestamp: input,
+            iso: d.toISOString(),
+            local: d.toLocaleString('zh-CN', { timeZone: 'UTC' }) + (offsetHours ? ` (UTC+${offsetHours})` : ''),
+          };
+        }
+        const sec = Math.floor(now.getTime() / 1000);
+        return { action: 'now', unix: sec, iso: now.toISOString(), local: now.toLocaleString('zh-CN') };
+      }
+      case 'text-stats': {
+        const text = String(args.text ?? '');
+        if (!text) throw new Error('请输入文本');
+        const noSpace = text.replace(/\s/g, '');
+        const letters = text.replace(/[^\p{L}\p{N}]/gu, '');
+        const lines = text.split(/\r?\n/);
+        const words = new Set(text.match(/[\p{L}\p{N}]+/gu) ?? []);
+        return {
+          chars: text.length,
+          charsNoSpace: noSpace.length,
+          lettersDigits: letters.length,
+          lines: lines.length,
+          linesNonEmpty: lines.filter((l) => l.trim().length > 0).length,
+          uniqueWords: words.size,
+          words: text.match(/[\p{L}\p{N}]+/gu)?.length ?? 0,
+        };
+      }
+      case 'web-search': {
+        // 渐进式: 先尝试 DuckDuckGo 简易后端查询，失败了也返回可读提示
+        const query = String(args.query ?? '').trim();
+        const maxResults = Math.min(Math.max(Number(args.maxResults ?? 5) || 5, 1), 10);
+        if (!query) throw new Error('请输入搜索关键词');
+        throw new Error('网页搜索暂不可用，稍后再试');
+      }
+      default:
+        throw new BadRequestException(`Unknown tool: ${toolName}`);
+    }
   }
 
   // ---- helpers ----

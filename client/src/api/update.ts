@@ -4,7 +4,7 @@ const UPDATE_REPO_OWNER = 'ekstai';
 const UPDATE_REPO_NAME = 'nexus-agnes';
 const RELEASES_API_URL = `https://api.github.com/repos/${UPDATE_REPO_OWNER}/${UPDATE_REPO_NAME}/releases/latest`;
 
-export const APP_VERSION = '2.1.0';
+export const APP_VERSION = '2.2.0';
 
 export interface UpdateCheckInfo {
   currentVersion: string;

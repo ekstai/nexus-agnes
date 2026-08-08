@@ -6,6 +6,12 @@ import {
   Terminal,
   Search,
   Puzzle,
+  DollarSign,
+  Binary,
+  Fingerprint,
+  Braces,
+  Clock,
+  Sigma,
 } from 'lucide-react';
 import { Badge } from '@client/src/components/ui/badge';
 import { Card, CardContent } from '@client/src/components/ui/card';
@@ -22,6 +28,12 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   CloudSun,
   Terminal,
   Search,
+  DollarSign,
+  Binary,
+  Fingerprint,
+  Braces,
+  Clock,
+  Sigma,
 };
 
 const categoryLabels: Record<string, string> = {

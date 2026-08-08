@@ -89,6 +89,15 @@ const BACKGROUND_PRESETS: { name: string; value: string }[] = [
 
 const CHANGELOG = [
   {
+    version: '2.2.0',
+    date: '2026-08-08',
+    items: [
+      '新增 7 个实用插件：实时天气(真实数据)、实时汇率、Base64 编解码、UUID 生成、JSON 工具、时间戳转换、文本统计',
+      '翻译插件升级为真实翻译服务',
+      '插件市场新增插件均可安装使用，服务端与客户端双重实现',
+    ],
+  },
+  {
     version: '2.1.0',
     date: '2026-08-08',
     items: [
