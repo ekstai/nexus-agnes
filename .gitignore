@@ -67,6 +67,19 @@ pnpm-lock.yaml
 /pack/
 /release/
 
+# Source kept out of the public repo (local only)
+/client/
+/server/
+/shared/
+/electron/
+/plugins/server/
+/.spark/
+/.githooks/
+AGENTS.md
+electron-builder.yml
+*.config.js
+*.config.ts
+
 # Environment / secrets
 .env
 .env*
