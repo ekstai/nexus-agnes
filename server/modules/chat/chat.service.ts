@@ -579,10 +579,9 @@ const opts = this.llmService.toApiOptions(configRow);
         if (!query) throw new Error('请输入搜索关键词');
         throw new Error('网页搜索暂不可用，稍后再试');
       }
-      case 'system-file-tools':
-      case 'system-camera': {
+      case 'computer-use': {
         return {
-          hint: '该工具在客户端本地执行(相机/文件操作)',
+          hint: '该工具在客户端本地执行（电脑控制/截图/鼠标键盘）',
           clientExecuted: true,
         };
       }

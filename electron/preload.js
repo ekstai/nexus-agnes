@@ -12,10 +12,15 @@ contextBridge.exposeInMainWorld('nexusDesktop', {
     return () => ipcRenderer.removeAllListeners('window:maximized-changed');
   },
   pickWorkspaceDir: () => ipcRenderer.invoke('dialog:pick-workspace'),
-  // ---- 系统工具(电脑自动化) ----
-  createFile: (ctx) => ipcRenderer.invoke('system:create-file', ctx),
-  readTextFile: () => ipcRenderer.invoke('system:read-text-file'),
-  readPhoto: () => ipcRenderer.invoke('system:read-photo'),
-  openFolder: (folderPath) => ipcRenderer.invoke('system:open-folder', folderPath),
-  getWorkspaceDir: () => ipcRenderer.invoke('system:workspace-dir'),
+  // ---- Computer Use(电脑控制,对齐 Codex) ----
+  computerUse: {
+    screenshot: () => ipcRenderer.invoke('computer-use:screenshot'),
+    mouse: (opts) => ipcRenderer.invoke('computer-use:mouse', opts),
+    type: (text) => ipcRenderer.invoke('computer-use:type', String(text ?? '')),
+    key: (name) => ipcRenderer.invoke('computer-use:key', String(name ?? '')),
+    shell: (command, cwd) =>
+      ipcRenderer.invoke('computer-use:shell', { command: String(command ?? ''), cwd: cwd ? String(cwd) : undefined }),
+    open: (target) => ipcRenderer.invoke('computer-use:open', String(target ?? '')),
+    info: () => ipcRenderer.invoke('computer-use:info'),
+  },
 });

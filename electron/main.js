@@ -1,5 +1,5 @@
 // Electron 主进程:启动内嵌后端(ELECTRON_RUN_AS_NODE)并打开应用窗口
-const { app, BrowserWindow, dialog, shell, ipcMain, session } = require('electron');
+const { app, BrowserWindow, dialog, shell, ipcMain, desktopCapturer, screen } = require('electron');
 const { spawn, execFile } = require('child_process');
 const path = require('path');
 const http = require('http');
@@ -206,11 +206,6 @@ async function startBackend() {
 }
 
 function createWindow(url) {
-  // 允许渲染进程访问摄像头/麦克风(相机助手插件)
-  session.defaultSession.setPermissionRequestHandler((_wc, permission, callback) => {
-    callback(permission === 'media' || permission === 'mediaKeySystem');
-  });
-
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 860,
@@ -258,74 +253,221 @@ function createWindow(url) {
     return result.filePaths[0];
   });
 
-  // ---- 系统工具(电脑自动化): 文件/文件夹/照片 ----
-  const getWorkspaceDir = (override) => {
-    const fallback = path.join(app.getPath('documents'), 'Nexus Agnes');
-    return override && typeof override === 'string' ? override : fallback;
+  // ---- Computer Use(电脑控制,对齐 Codex) ----
+  const runPowerScript = (scriptBody) =>
+    new Promise((resolve) => {
+      const b64 = Buffer.from(scriptBody, 'utf16le').toString('base64');
+      execFile(
+        'powershell.exe',
+        ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-EncodedCommand', b64],
+        { timeout: 20000, windowsHide: true },
+        (err, stdout, stderr) => {
+          if (err) {
+            resolve({
+              ok: false,
+              error: String(err.message || err),
+              stdout: String(stdout || ''),
+              stderr: String(stderr || ''),
+            });
+            return;
+          }
+          resolve({ ok: true, stdout: String(stdout || ''), stderr: String(stderr || '') });
+        }
+      );
+    });
+
+  const MOUSE_SCRIPT = (x, y, action) => `
+Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+public class CUInp {
+  [DllImport("user32.dll")] public static extern bool SetCursorPos(int X, int Y);
+  [DllImport("user32.dll")] public static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint dwData, UIntPtr dwExtraInfo);
+}
+'@
+[CUInp]::SetCursorPos(${x}, ${y})
+Start-Sleep -Milliseconds 60
+function DoClick($down, $up) { [CUInp]::mouse_event($down, 0, 0, 0, [UIntPtr]::Zero); [CUInp]::mouse_event($up, 0, 0, 0, [UIntPtr]::Zero) }
+if ('${action}' -eq 'down') { [CUInp]::mouse_event(2, 0, 0, 0, [UIntPtr]::Zero) }
+elseif ('${action}' -eq 'up') { [CUInp]::mouse_event(4, 0, 0, 0, [UIntPtr]::Zero) }
+elseif ('${action}' -eq 'right-click') { [CUInp]::mouse_event(8, 0, 0, 0, [UIntPtr]::Zero); [CUInp]::mouse_event(16, 0, 0, 0, [UIntPtr]::Zero) }
+elseif ('${action}' -eq 'double-click') { DoClick 2 4; Start-Sleep -Milliseconds 90; DoClick 2 4 }
+else { DoClick 2 4 }
+`;
+  const PUTSCRIPT = `
+$bytes = [Convert]::FromBase64String('_CU_B64_')
+$clip = [System.Text.Encoding]::UTF8.GetString($bytes)
+Set-Clipboard -Value $clip
+Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+public class CUKey {
+  [DllImport("user32.dll")] public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
+}
+'@
+[CUKey]::keybd_event(0x11, 0, 0, [UIntPtr]::Zero)
+[CUKey]::keybd_event(0x56, 0, 0, [UIntPtr]::Zero)
+[CUKey]::keybd_event(0x56, 0, 2, [UIntPtr]::Zero)
+[CUKey]::keybd_event(0x11, 0, 2, [UIntPtr]::Zero)
+Start-Sleep -Milliseconds 300
+Set-Clipboard -Value $null
+`;
+  const KEY_VK = {
+    enter: 0x0d, esc: 0x1b, tab: 0x09, space: 0x20, backspace: 0x08,
+    delete: 0x2e, home: 0x24, end: 0x23, pageup: 0x21, pagedown: 0x22,
+    up: 0x26, down: 0x28, left: 0x25, right: 0x27,
   };
+  const KEY_SCRIPT = `
+Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+public class CUKey2 {
+  [DllImport("user32.dll")] public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
+}
+'@
+[CUKey2]::keybd_event(_CU_VK_, 0, 0, [UIntPtr]::Zero)
+[CUKey2]::keybd_event(_CU_VK_, 0, 2, [UIntPtr]::Zero)
+`;
 
-  ipcMain.handle('system:workspace-dir', () => process.env.AGNES_WORKSPACE || getWorkspaceDir());
-
-  ipcMain.handle('system:create-file', async (_event, ctx) => {
+  ipcMain.handle('computer-use:screenshot', async () => {
     try {
-      const fs = require('fs');
-      const fileName = String((ctx && ctx.fileName) || 'unnamed.txt').replace(/[\\/:*?"<>|]/g, '_');
-      const content = String((ctx && ctx.content) || '');
-      const dir = getWorkspaceDir(ctx && ctx.dir);
-      fs.mkdirSync(dir, { recursive: true });
-      const filePath = path.join(dir, fileName);
-      fs.writeFileSync(filePath, content, 'utf8');
-      return { success: true, path: filePath, dir };
+      const primary = screen.getPrimaryDisplay();
+      const sources = await desktopCapturer.getSources({
+        types: ['screen'],
+        thumbnailSize: { width: primary.size.width, height: primary.size.height },
+      });
+      if (!sources || sources.length === 0) {
+        return { ok: false, error: '无法截取屏幕' };
+      }
+      const largest = sources.reduce((a, b) => (b.thumbnail.getSize().width > a.thumbnail.getSize().width ? b : a), sources[0]);
+      if (!largest.thumbnail.isEmpty()) {
+        return { ok: true, dataUrl: largest.thumbnail.toDataURL(), name: largest.name };
+      }
+      return { ok: false, error: '截图内容为空' };
     } catch (err) {
-      return { success: false, error: err.message };
+      return { ok: false, error: err.message };
     }
   });
 
-  ipcMain.handle('system:read-text-file', async () => {
-    const result = await dialog.showOpenDialog(mainWindow, {
-      title: '选择要读取的文件',
-      properties: ['openFile'],
-    });
-    if (result.canceled || result.filePaths.length === 0) {
-      return { canceled: true };
-    }
+  ipcMain.handle('computer-use:mouse', async (_event, opts) => {
     try {
-      const fs = require('fs');
-      const filePath = result.filePaths[0];
-      const content = fs.readFileSync(filePath, 'utf8');
-      const size = fs.statSync(filePath).size;
-      return { success: true, path: filePath, name: path.basename(filePath), size, content: content.slice(0, 200000) };
+      const x = Math.round(Number(opts && opts.x));
+      const y = Math.round(Number(opts && opts.y));
+      const action = String((opts && opts.action) || 'click');
+      if (!Number.isFinite(x) || !Number.isFinite(y)) {
+        return { ok: false, error: '无效坐标' };
+      }
+      const res = await runPowerScript(MOUSE_SCRIPT(x, y, action));
+      res.performed = action;
+      res.x = x;
+      res.y = y;
+      return res;
     } catch (err) {
-      return { success: false, error: err.message };
+      return { ok: false, error: err.message };
     }
   });
 
-  ipcMain.handle('system:read-photo', async () => {
-    const result = await dialog.showOpenDialog(mainWindow, {
-      title: '读取照片',
-      properties: ['openFile'],
-      filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'] }],
-    });
-    if (result.canceled || result.filePaths.length === 0) {
-      return { canceled: true };
-    }
+  ipcMain.handle('computer-use:type', async (_event, text) => {
     try {
-      const fs = require('fs');
-      const filePath = result.filePaths[0];
-      const data: Buffer = fs.readFileSync(filePath);
-      const ext = path.extname(filePath).slice(1) || 'png';
-      const mime = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp', bmp: 'image/bmp' }[ext] || 'image/png';
-      const dataUrl = `data:${mime};base64,${data.toString('base64')}`;
-      return { success: true, path: filePath, name: path.basename(filePath), size: data.length, dataUrl };
+      const clean = String(text || '');
+      const b64 = Buffer.from(clean, 'utf8').toString('base64');
+      return await runPowerShell(PUTSCRIPT.replace('_CU_B64_', b64));
     } catch (err) {
-      return { success: false, error: err.message };
+      return { ok: false, error: err.message };
     }
   });
 
-  ipcMain.handle('system:open-folder', async (_event, folderPath) => {
-    const dir = folderPath || getWorkspaceDir();
-    const shellError = await shell.openPath(dir);
-    return { success: !shellError, path: dir, shellError };
+  ipcMain.handle('computer-use:key', async (_event, name) => {
+    try {
+      const key = String(name || '').toLowerCase().trim();
+      const vk = KEY_VK[key];
+      if (!vk) {
+        return { ok: false, error: `不支持的按键: ${key}` };
+      }
+      return await runPowerShell(KEY_SCRIPT.replace('_CU_VK_', String(vk)));
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('computer-use:shell', async (_event, payload) => {
+    try {
+      const command = String((payload && payload.command) || '').trim();
+      if (!command) {
+        return { ok: false, error: '命令为空' };
+      }
+      const output = await new Promise((resolve) => {
+        execFile(
+          'cmd.exe',
+          ['/d', '/s', '/c', command],
+          {
+            cwd: payload && payload.cwd ? String(payload.cwd) : undefined,
+            timeout: 20000,
+            maxBuffer: 8 * 1024 * 1024,
+            windowsHide: true,
+          },
+          (err, stdout, stderr) => {
+            resolve({
+              code: err ? (typeof err.code === 'number' ? err.code : -1) : 0,
+              stdout: String(stdout || ''),
+              stderr: String(stderr || ''),
+            });
+          }
+        );
+      });
+      return { ok: true, ...output };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('computer-use:open', async (_event, target) => {
+    try {
+      const t = String(target || '').trim();
+      if (!t) {
+        return { ok: false, error: '目标为空' };
+      }
+      const appMap = {
+        notepad: 'notepad.exe', calc: 'calc.exe', calculator: 'calc.exe',
+        explorer: 'explorer.exe', mspaint: 'mspaint.exe', cmd: 'cmd.exe',
+      };
+      const mapped = appMap[t.toLowerCase()] || t;
+      const shellError = await shell.openPath(mapped);
+      if (shellError) {
+        const output = await new Promise((resolve) => {
+          execFile(
+            'cmd.exe',
+            ['/d', '/s', '/c', `start "" "${mapped.replace(/"/g, '')}"`],
+            { timeout: 10000, windowsHide: true },
+            (err2, stdout, stderr) => {
+              resolve(err2 ? `${err2.message} ${stdout} ${stderr}` : '');
+            }
+          );
+        });
+        if (output) {
+          return { ok: false, error: `无法打开: ${output}` };
+        }
+      }
+      return { ok: true, target: t };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('computer-use:info', () => {
+    try {
+      const primary = screen.getPrimaryDisplay();
+      return {
+        ok: true,
+        app: APP_NAME,
+        version: app.getVersion(),
+        width: primary ? primary.size.width : 0,
+        height: primary ? primary.size.height : 0,
+        os: `${process.platform} ${process.arch}`,
+      };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
   });
 
   mainWindow.webContents.setWindowOpenHandler(({ url: targetUrl }) => {

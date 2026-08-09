@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { logger } from '@lark-apaas/client-toolkit/logger';
 import * as pluginApi from '@client/src/api/plugin';
-import { getPluginByKey } from '@client/src/plugins/registry';
 import {
   Calculator,
   Languages,
@@ -55,8 +54,6 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Braces,
   Clock,
   Sigma,
-  Monitor,
-  Camera,
 };
 
 const categoryLabels: Record<string, string> = {

@@ -15,9 +15,7 @@ import {
   updateConversation,
   rewriteMessage,
   timelineBranch,
-  saveClientToolResult,
 } from '@client/src/api/chat';
-import AutomationToolbox from '@client/src/components/chat/AutomationToolbox';
 import * as memoryApi from '@client/src/api/memory';
 import * as modelConfigApi from '@client/src/api/model-config';
 import { useConversationStore } from '@client/src/stores/conversation-store';
@@ -147,41 +145,6 @@ const ChatPage: React.FC = () => {
       } catch (error) {
         logger.error('切换模型失败', error);
       }
-    }
-  };
-
-  const handleEnsureConversation = async (): Promise<string | null> => {
-    if (currentConversationId) return currentConversationId;
-    try {
-      const conv = await createConversation({ title: '自动化操作' });
-      setCurrentConversation(conv.id);
-      setMessages([]);
-      return conv.id;
-    } catch (error) {
-      logger.error('创建对话失败', error);
-      return null;
-    }
-  };
-
-  const handleUseEnd = async (
-    toolCallId: string,
-    toolName: string,
-    result: unknown,
-    conversationId?: string,
-  ): Promise<void> => {
-    const cid = conversationId || currentConversationId;
-    if (!cid) return;
-    try {
-      await saveClientToolResult({
-        conversationId: cid,
-        toolCallId,
-        toolName,
-        result,
-      });
-      const detail = await getConversation(cid);
-      setMessages(detail.messages || []);
-    } catch (error) {
-      logger.error('保存工具结果失败', error);
     }
   };
 
@@ -553,11 +516,6 @@ const ChatPage: React.FC = () => {
 
       {/* 底部输入区 */}
       <footer className="flex-shrink-0">
-        <AutomationToolbox
-          hasConversation={!!currentConversationId}
-          ensureConversation={handleEnsureConversation}
-          onUseEnd={handleUseEnd}
-        />
         <ChatInput onSend={handleSend} disabled={isSending} preloadEnabled={preloadOn} />
       </footer>
     </div>
