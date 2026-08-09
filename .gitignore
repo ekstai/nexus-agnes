@@ -81,7 +81,7 @@ electron-builder.yml
 *.config.ts
 
 # Root workspace files
-/npmrc
+/.npmrc
 /.prettierrc
 /.stylelintrc.js
 /.spark_project
