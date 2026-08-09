@@ -54,6 +54,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Braces,
   Clock,
   Sigma,
+  Monitor,
 };
 
 const categoryLabels: Record<string, string> = {

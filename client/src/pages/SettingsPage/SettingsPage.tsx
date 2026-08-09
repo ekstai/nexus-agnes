@@ -89,8 +89,8 @@ const BACKGROUND_PRESETS: { name: string; value: string }[] = [
 
 const CHANGELOG = [
   {
-    version: '2.2.1',
-    date: '2026-08-08',
+    version: '2.2.2',
+    date: '2026-08-09',
     items: [
       '内置插件精简为 1 个：电脑控制（Computer Use）—— 与 Codex 的 computer use 功能一致',
       'Computer Use：截图观察屏幕、鼠标移动/单击/双击/右键、键盘输入(支持中文)、运行命令、打开文件与应用、环境信息',
