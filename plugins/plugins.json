@@ -1,17 +1,5 @@
 {
-  "version": 4,
-  "updatedAt": "2026-08-08",
-  "plugins": [
-    {
-      "pluginKey": "computer-use",
-      "name": "电脑控制（Computer Use）",
-      "description": "像 Codex 的 computer use 一样直接操作电脑：截图观察屏幕、移动并点击鼠标、键盘输入、运行命令、打开文件与应用。",
-      "category": "tool",
-      "icon": "Monitor",
-      "version": "1.0.0",
-      "author": "Agnes",
-      "builtin": true,
-      "platforms": ["desktop"]
-    }
-  ]
+  "version": 5,
+  "updatedAt": "2026-08-09",
+  "plugins": []
 }
