@@ -1,5 +1,17 @@
 {
-  "version": 5,
-  "updatedAt": "2026-08-09",
-  "plugins": []
+  "version": 6,
+  "updatedAt": "2026-08-11",
+  "plugins": [
+    {
+      "pluginKey": "browser-automation",
+      "name": "内置浏览器",
+      "description": "在应用内部打开 Chromium 内核浏览器（独立窗口，自带工具栏），支持网页自动化：打开网址、后退/前进/刷新、CSS 选择器点击、向输入框打字、执行 JS、页面截图、关闭。聊天中可指挥 AI 直接使用「browser」工具操作网页。",
+      "category": "tool",
+      "icon": "Monitor",
+      "version": "1.0.0",
+      "author": "Nexus Agnes",
+      "builtin": true,
+      "platforms": ["desktop"]
+    }
+  ]
 }
