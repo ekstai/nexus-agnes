@@ -1,5 +1,5 @@
 {
-  "version": 7,
+  "version": 8,
   "updatedAt": "2026-08-12",
   "plugins": [
     {
@@ -60,7 +60,7 @@
           "--sidebar-border": "#232326",
           "--sidebar-ring": "#F5980B"
         },
-        "css": "[data-theme=\"theme-codex\"]{--font-sans:'SF Mono',ui-monospace,'JetBrains Mono',Menlo,Consolas,'Courier New',monospace;--radius:6px}[data-theme=\"theme-codex\"] body,[data-theme=\"theme-codex\"] button,[data-theme=\"theme-codex\"] input,[data-theme=\"theme-codex\"] textarea{font-family:var(--font-sans)}[data-theme=\"theme-codex\"] ::-webkit-scrollbar{width:8px;height:8px}[data-theme=\"theme-codex\"] ::-webkit-scrollbar-thumb{background:#2A2A2E;border-radius:4px}[data-theme=\"theme-codex\"] ::-webkit-scrollbar-thumb:hover{background:#3A3A40}[data-theme=\"theme-codex\"] .glass,[data-theme=\"theme-codex\"] .glass-strong,[data-theme=\"theme-codex\"] .backdrop-blur-xl,[data-theme=\"theme-codex\"] .backdrop-blur-lg,[data-theme=\"theme-codex\"] .backdrop-blur-md{backdrop-filter:none!important}",
+        "css": "[data-theme=\"theme-codex\"]{--font-sans:'SF Mono',ui-monospace,'JetBrains Mono',Menlo,Consolas,'Courier New',monospace;--radius:6px}[data-theme=\"theme-codex\"] body,[data-theme=\"theme-codex\"] button,[data-theme=\"theme-codex\"] input,[data-theme=\"theme-codex\"] textarea{font-family:var(--font-sans)}[data-theme=\"theme-codex\"] textarea,[data-theme=\"theme-codex\"] input{caret-color:#F5980B}[data-theme=\"theme-codex\"] ::selection{background:rgba(245,152,11,0.3)}[data-theme=\"theme-codex\"] ::-webkit-scrollbar{width:8px;height:8px}[data-theme=\"theme-codex\"] ::-webkit-scrollbar-thumb{background:#2A2A2E;border-radius:4px}[data-theme=\"theme-codex\"] ::-webkit-scrollbar-thumb:hover{background:#3A3A40}[data-theme=\"theme-codex\"] .glass,[data-theme=\"theme-codex\"] .glass-strong,[data-theme=\"theme-codex\"] .backdrop-blur-xl,[data-theme=\"theme-codex\"] .backdrop-blur-lg,[data-theme=\"theme-codex\"] .backdrop-blur-md{backdrop-filter:none!important}",
         "preview": {
           "background": "#0A0A0B",
           "foreground": "#EDEDED",
